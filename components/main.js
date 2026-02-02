@@ -1,33 +1,14 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+/**
+ * DUMMY main.js
+ * Use this to test the UI/Animations without Firebase
+ */
 
-// Firebase Config
-// Note: Ensure __firebase_config is defined globally or replace with your config object
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'reunion-naming-contest';
-
-let currentUser = null;
-let mockOtp = "1234"; 
+// 1. Configuration & State
 let currentProgress = 0;
+let mockOtp = "1234";
 let timer;
 
-// Initialization
-const initAuth = async () => {
-    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-        await signInWithCustomToken(auth, __initial_auth_token);
-    } else {
-        await signInAnonymously(auth);
-    }
-};
-
-onAuthStateChanged(auth, (user) => { currentUser = user; });
-initAuth();
-
-// Loading Logic
+// 2. Loading Animation Logic
 function updateLoader() {
     const messages = ["Dusting yearbooks...", "Polishing trophies...", "Gathering alumni...", "Loading memories...", "Readying the campus..."];
     const textEl = document.getElementById('loading-text');
@@ -44,14 +25,16 @@ function updateLoader() {
         setTimeout(updateLoader, 100);
     } else {
         textEl.textContent = "Welcome Home.";
+        // Hide loader, show the "Name the Event" button
         document.getElementById('loader-content').style.display = 'none';
         document.getElementById('main-action-btn').style.display = 'block';
     }
 }
 
-// Modal Functions
+// 3. Modal Controls
 const toggleModal = (show) => {
-    document.getElementById('event-modal').classList.toggle('hidden', !show);
+    const modal = document.getElementById('event-modal');
+    modal.classList.toggle('hidden', !show);
     if(show) backToDetails();
 };
 
@@ -63,6 +46,7 @@ const backToDetails = () => {
 
 const proceedToVerification = (e) => {
     e.preventDefault();
+    console.log("Details submitted. Moving to OTP...");
     document.getElementById('step-details').classList.add('hidden');
     document.getElementById('step-otp').classList.remove('hidden');
     startTimer();
@@ -82,41 +66,31 @@ const startTimer = () => {
     }, 1000);
 };
 
-const verifyAndSubmit = async () => {
-    if (!currentUser) { alert("Connecting to server..."); return; }
-
+// 4. Mock Submit (Simulates Database Save)
+const verifyAndSubmit = () => {
     const otp = Array.from(document.querySelectorAll('.otp-input')).map(i => i.value).join('');
-    if (otp !== mockOtp) { alert("Incorrect code. Use '1234'."); return; }
+    
+    if (otp !== mockOtp) { 
+        alert("Incorrect code. Use '1234'."); 
+        return; 
+    }
 
     const verifyBtn = document.getElementById('verify-btn');
     verifyBtn.disabled = true;
     verifyBtn.textContent = "Saving...";
 
-    const payload = {
-        userName: document.getElementById('user-name').value,
-        batch: document.getElementById('user-batch').value,
-        contact: document.getElementById('user-contact').value,
-        suggestedName: document.getElementById('event-input').value,
-        verified: true,
-        submittedBy: currentUser.uid,
-        timestamp: serverTimestamp()
-    };
-
-    try {
-        const suggestionsCol = collection(db, 'artifacts', appId, 'public', 'data', 'suggestions');
-        await addDoc(suggestionsCol, payload);
-        document.getElementById('display-name').textContent = payload.userName.split(' ')[0];
+    // Simulate a 1.5 second network delay
+    setTimeout(() => {
+        const name = document.getElementById('user-name').value;
+        document.getElementById('display-name').textContent = name.split(' ')[0];
+        
         document.getElementById('step-otp').classList.add('hidden');
         document.getElementById('success-msg').classList.remove('hidden');
-    } catch (err) {
-        console.error(err);
-        alert("Failed to save. Try again.");
-        verifyBtn.disabled = false;
-        verifyBtn.textContent = "Verify & Submit";
-    }
+        console.log("Success! Data (not) saved to Firebase.");
+    }, 1500);
 };
 
-// Event Listeners
+// 5. Event Listeners
 document.getElementById('main-action-btn').addEventListener('click', () => toggleModal(true));
 document.getElementById('modal-overlay').addEventListener('click', () => toggleModal(false));
 document.getElementById('modal-close-x').addEventListener('click', () => toggleModal(false));
@@ -134,4 +108,5 @@ document.querySelectorAll('.otp-input').forEach((input, index, inputs) => {
     });
 });
 
+// Start the app
 window.onload = updateLoader;
